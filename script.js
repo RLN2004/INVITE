@@ -96,3 +96,92 @@ window.addEventListener("scroll", () => {
     lamp.style.transform = `translateY(${offset}px)`;
   });
 });
+
+
+
+const bgMusic = document.getElementById("bgMusic");
+const musicToggle = document.getElementById("musicToggle");
+
+let musicStarted = false;
+let fadeInterval = null;
+
+function updateMusicButton(isPlaying) {
+  if (!musicToggle) return;
+
+  if (isPlaying) {
+    musicToggle.textContent = "♫ Music On";
+    musicToggle.classList.add("playing");
+  } else {
+    musicToggle.textContent = "♫ Music Off";
+    musicToggle.classList.remove("playing");
+  }
+}
+
+function fadeInMusic(targetVolume = 0.48, step = 0.01, intervalTime = 120) {
+  if (!bgMusic) return;
+
+  clearInterval(fadeInterval);
+  bgMusic.volume = 0;
+
+  fadeInterval = setInterval(() => {
+    if (!bgMusic || bgMusic.paused) {
+      clearInterval(fadeInterval);
+      return;
+    }
+
+    const nextVolume = Math.min(bgMusic.volume + step, targetVolume);
+    bgMusic.volume = nextVolume;
+
+    if (nextVolume >= targetVolume) {
+      clearInterval(fadeInterval);
+    }
+  }, intervalTime);
+}
+
+async function startMusicOnFirstScroll() {
+  if (!bgMusic || musicStarted) return;
+
+  try {
+    bgMusic.volume = 0;
+    await bgMusic.play();
+    fadeInMusic();
+    updateMusicButton(true);
+    musicStarted = true;
+    window.removeEventListener("scroll", handleFirstScroll);
+  } catch (error) {
+    console.error("Music autoplay blocked:", error);
+  }
+}
+
+function handleFirstScroll() {
+  if (window.scrollY > 5) {
+    startMusicOnFirstScroll();
+  }
+}
+
+if (bgMusic) {
+  window.addEventListener("scroll", handleFirstScroll, { passive: true });
+}
+
+if (musicToggle && bgMusic) {
+  updateMusicButton(false);
+
+  musicToggle.addEventListener("click", async () => {
+    try {
+      if (bgMusic.paused) {
+        if (!musicStarted) {
+          musicStarted = true;
+        }
+        await bgMusic.play();
+        fadeInMusic();
+        updateMusicButton(true);
+      } else {
+        clearInterval(fadeInterval);
+        bgMusic.pause();
+        updateMusicButton(false);
+      }
+    } catch (error) {
+      console.error("Music toggle failed:", error);
+    }
+  });
+}
